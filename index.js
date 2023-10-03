@@ -10,6 +10,9 @@ const sourceNhost = new NhostClient(sourceConfig);
 const destinationConfig = config.get("destination.nhost");
 const destinationNhost = new NhostClient(destinationConfig);
 
+const sleepTimeBetweenTransfers =
+  config.get("sleepTimeBetweenTransfers") ?? 1000; // 1 second
+
 // GraphQL query to fetch all files
 const query = `
 {
@@ -162,7 +165,7 @@ async function transferFiles() {
         );
       },
     });
-    await sleep(1000); // Sleep for 1 second after each file transfer
+    await sleep(sleepTimeBetweenTransfers); // ms
   }
 }
 

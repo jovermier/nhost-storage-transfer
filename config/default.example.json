@@ -11,5 +11,6 @@
       "subdomain": "local",
       "adminSecret": "nhost-admin-secret"
     }
-  }
+  },
+  "sleepTimeBetweenTransfers": 1000
 }
