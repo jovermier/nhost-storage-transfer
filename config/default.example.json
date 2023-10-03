@@ -1,0 +1,15 @@
+{
+  "source": {
+    "nhost": {
+      "subdomain": "",
+      "region": "us-east-1",
+      "adminSecret": ""
+    }
+  },
+  "destination": {
+    "nhost": {
+      "subdomain": "local",
+      "adminSecret": "nhost-admin-secret"
+    }
+  }
+}
