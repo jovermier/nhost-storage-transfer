@@ -29,6 +29,7 @@ const query = `
     etag
     isUploaded
     uploadedByUserId
+    metadata
   }
 }
 `;
@@ -103,6 +104,7 @@ const transferFileAxios = async (url, { id, bucketId, ...metadata }) => {
     mimeType: metadata.mimeType,
     etag: metadata.etag,
     uploadedByUserId: metadata.uploadedByUserId,
+    metadata: metadata.metadata,
   };
 
   formData.append("file[]", fileData, metadata.name);

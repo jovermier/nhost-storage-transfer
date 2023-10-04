@@ -12,5 +12,15 @@
       "adminSecret": "nhost-admin-secret"
     }
   },
-  "sleepTimeBetweenTransfers": 1000
+  "moreExamples": {
+    "custom local": {
+      "authUrl": "https://local.auth.nhost.run:8433/v1",
+      "storageUrl": "https://local.storage.nhost.run:8433/v1",
+      "graphqlUrl": "https://local.graphql.nhost.run:8433/v1",
+      "functionsUrl": "https://local.functions.nhost.run:8433/v1",
+      "adminSecret": "nhost-admin-secret"
+    }
+  },
+  "sleepTimeBetweenTransfers": 1000,
+  "retries": 2
 }
