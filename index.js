@@ -1,6 +1,6 @@
 import { NhostClient } from "@nhost/nhost-js";
 import config from "config";
-import pRetry, { AbortError } from "p-retry";
+import pRetry from "p-retry";
 import axios from "axios";
 import FormData from "form-data";
 
@@ -12,6 +12,8 @@ const destinationNhost = new NhostClient(destinationConfig);
 
 const sleepTimeBetweenTransfers =
   config.get("sleepTimeBetweenTransfers") ?? 1000; // 1 second
+
+const retries = config.get("retries") ?? 2;
 
 // GraphQL query to fetch all files
 const query = `
@@ -30,6 +32,9 @@ const query = `
   }
 }
 `;
+
+const uniqueViolationStr =
+  "Uniqueness violation. duplicate key value violates unique constraint";
 
 // Example of how to transfer a file from one Nhost project to another
 // https://github.com/nhost/hasura-storage/blob/main/example_curl.sh#L21C7-L21C7
@@ -128,7 +133,7 @@ const transferSingleFile = async (file) => {
     const presignedUrlRes = await sourceNhost.storage.getPresignedUrl({
       fileId: file.id,
     });
-    const url = presignedUrlRes.presignedUrl.url;
+    const url = presignedUrlRes?.presignedUrl?.url;
     if (!url) {
       throw new Error(`Failed to get pre-signed URL for file ${file.id}`);
     }
@@ -136,11 +141,14 @@ const transferSingleFile = async (file) => {
     await transferFile(url, file);
     console.log(`Transferred file ${file.name} with id ${file.id}`);
   } catch (e) {
-    console.log(`Error while transferring ${file.name}:`, e);
+    const message = e.message.startsWith(uniqueViolationStr)
+      ? uniqueViolationStr
+      : e.message;
+    console.log(`Error while transferring ${file.name}:`, message);
 
     // If you have a certain error condition on which you'd like to stop retries:
-    if (e.message === "SomeSpecificErrorMessage") {
-      throw new AbortError(e.message);
+    if (e.message.startsWith(uniqueViolationStr)) {
+      return;
     }
 
     throw e; // Otherwise, throw the error to let pRetry handle retries
@@ -158,7 +166,7 @@ async function transferFiles() {
 
   for (const file of destinationFiles) {
     await pRetry(() => transferSingleFile(file), {
-      retries: 5,
+      retries,
       onFailedAttempt: (error) => {
         console.log(
           `Attempt ${error.attemptNumber} failed. There are ${error.retriesLeft} retries left.`
