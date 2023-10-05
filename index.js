@@ -141,7 +141,6 @@ const transferSingleFile = async (file) => {
     }
 
     await transferFile(url, file);
-    console.log(`Transferred file ${file.name} with id ${file.id}`);
   } catch (e) {
     const message = e.message.startsWith(uniqueViolationStr)
       ? uniqueViolationStr
@@ -166,7 +165,9 @@ async function transferFiles() {
   const destinationResponse = await sourceNhost.graphql.request(query);
   const destinationFiles = destinationResponse.data.files;
 
+  let count = 0;
   for (const file of destinationFiles) {
+    count++;
     await pRetry(() => transferSingleFile(file), {
       retries,
       onFailedAttempt: (error) => {
@@ -174,6 +175,8 @@ async function transferFiles() {
           `Attempt ${error.attemptNumber} failed. There are ${error.retriesLeft} retries left.`
         );
       },
+    }).then(() => {
+      console.log(`${count} Transferred file ${file.name} with id ${file.id}`);
     });
     await sleep(sleepTimeBetweenTransfers); // ms
   }
