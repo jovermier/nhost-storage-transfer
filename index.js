@@ -16,7 +16,7 @@ const sleepTimeBetweenTransfers =
 const retries = config.get("retries") ?? 2;
 
 // GraphQL query to fetch all files
-const query = `
+const allFilesQuery = `
 {
   files {
     id
@@ -162,11 +162,26 @@ function sleep(ms) {
 
 async function transferFiles() {
   // Fetch files from destination
-  const destinationResponse = await sourceNhost.graphql.request(query);
-  const destinationFiles = destinationResponse.data.files;
+  const sourceRes = await sourceNhost.graphql.request(allFilesQuery);
+  const sourceFiles = sourceRes.data.files;
+
+  const destinationRes = await destinationNhost.graphql.request(allFilesQuery);
+  const destinationFiles = destinationRes.data.files;
+
+  const filesNeedingUpload = sourceFiles.filter((sourceFile) => {
+    return !destinationFiles.some(
+      (destinationFile) => destinationFile.id === sourceFile.id
+    );
+  });
+
+  const filesNeedingRemoval = destinationFiles.filter((destinationFile) => {
+    return !sourceFiles.some(
+      (sourceFile) => sourceFile.id === destinationFile.id
+    );
+  });
 
   let count = 0;
-  for (const file of destinationFiles) {
+  for (const file of filesNeedingUpload) {
     count++;
     await pRetry(() => transferSingleFile(file), {
       retries,
@@ -179,6 +194,26 @@ async function transferFiles() {
       console.log(`${count} Transferred file ${file.name} with id ${file.id}`);
     });
     await sleep(sleepTimeBetweenTransfers); // ms
+  }
+
+  // use a single graphql request to delete all files
+  try {
+    const idsToDelete = filesNeedingRemoval.map((file) => file.id);
+    const deleteResponse = await destinationNhost.graphql.request(
+      `mutation($ids: [uuid!]!) {
+        deleteFiles(where: {id: {_in: $ids}}) {
+          affected_rows
+        }
+      }`,
+      {
+        ids: idsToDelete,
+      }
+    );
+    console.log(
+      `Deleted ${deleteResponse.data.deleteFiles.affected_rows} files`
+    );
+  } catch (e) {
+    console.log(`Error deleting files:`, e.message);
   }
 }
 
