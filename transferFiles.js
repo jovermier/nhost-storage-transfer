@@ -1,9 +1,8 @@
 import { NhostClient } from "@nhost/nhost-js";
-import config from "config";
-import pRetry from "p-retry";
 import axios from "axios";
+import config from "config";
 import FormData from "form-data";
-import c from "config";
+import pRetry from "p-retry";
 
 const sourceConfig = config.get("source.nhost");
 const sourceNhost = new NhostClient(sourceConfig);
@@ -11,8 +10,7 @@ const sourceNhost = new NhostClient(sourceConfig);
 const destinationConfig = config.get("destination.nhost");
 const destinationNhost = new NhostClient(destinationConfig);
 
-const sleepTimeBetweenTransfers =
-  config.get("sleepTimeBetweenTransfers") ?? 1000; // 1 second
+const sleepTimeBetweenTransfers = config.get("sleepTimeBetweenTransfers") ?? 0;
 
 const retries = config.get("retries") ?? 2;
 
@@ -203,7 +201,7 @@ export async function transferFiles() {
     }).then(() => {
       console.log(`${count} Transferred file ${file.name} with id ${file.id}`);
     });
-    await sleep(sleepTimeBetweenTransfers); // ms
+    if (sleepTimeBetweenTransfers) await sleep(sleepTimeBetweenTransfers); // ms
   }
 
   // use a single graphql request to delete all files
